@@ -185,6 +185,7 @@ textarea.in{min-height:90px;resize:vertical}
       <button data-v="subs">📥 Submissions</button>
       <button data-v="faculty" class="adm">👥 Faculty accounts</button>
       <button data-v="audit" class="adm">📜 Audit log</button>
+      <button data-v="settings" class="adm">⚙️ Settings</button>
       <button data-v="account">🔑 My account</button>
     </nav>
     <div class="sp"></div>
@@ -239,7 +240,7 @@ const Demo = (() => {
   return {
     login: ({username, password}) => { if (username !== 'demo' || password !== 'demo') throw new Error('Invalid username or password. (Preview: demo / demo)'); return { token: 'demo', user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'} }; },
     logout: () => true,
-    dashboard: () => ({ emailQuota: 100, user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'}, rows: JSON.parse(JSON.stringify(rows)) }),
+    dashboard: () => ({ config: { DEADLINE: '2026-11-20T23:59:00+05:30', ACCEPT_LATE: true }, emailQuota: 100, user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'}, rows: JSON.parse(JSON.stringify(rows)) }),
     review: ({id, status, remarks}) => { const r = rows.find(x => x.id === id); r.status = status; r.remarks = remarks; r.reviewedOn = new Date().toLocaleString('en-IN'); r.reviewedBy = 'Lab Coordinator'; lg('REVIEW', id + ' → ' + status); return { reviewedOn: r.reviewedOn, reviewedBy: r.reviewedBy, emailed: 'team' }; },
     reveal: ({id}) => { lg('VIEW_CONTACTS', id); return rows.find(x => x.id === id).members.map(m => Object.assign({}, m, {contact: m.contact ? '98765' + m.contact.slice(-5).replace(/X/g, '4') : '', email: m.email ? 'student' + id.slice(-3) + '@gmail.com' : ''})); },
     file: ({id}) => { lg('DOWNLOAD_FILE', id); return { name: id + '_sample.txt', mime: 'text/plain', data: btoa('Preview mode: real files download from your private Google Drive once the backend is connected.') }; },
@@ -250,6 +251,7 @@ const Demo = (() => {
     facultyDelete: ({username}) => { fac.splice(fac.findIndex(x => x.username === username), 1); lg('FACULTY_DELETED', username); return true; },
     changePassword: () => { lg('PASSWORD_CHANGED', ''); return true; },
     testEmail: () => ({ sentTo: 'atul.kathole1910@gmail.com', quota: 99 }),
+    saveSettings: ({deadline, acceptLate}) => ({ DEADLINE: deadline, ACCEPT_LATE: acceptLate }),
     links: () => ({ sheetUrl: '#', folderUrl: '#' })
   };
 })();
@@ -288,12 +290,12 @@ setInterval(() => {
 }, 1000);
 
 /* ---------------- app ---------------- */
-let QUOTA = null, ROWS = [], VIEW = 'overview', F = { q: '', div: '', prog: '', status: '' }, SK = 'id', SD = 1;
+let SETTINGS = {}, QUOTA = null, ROWS = [], VIEW = 'overview', F = { q: '', div: '', prog: '', status: '' }, SK = 'id', SD = 1;
 const DIVS = 'ABCDEFGHIJKLM'.split(''), STATUSES = ['Submitted', 'Under Review', 'Approved', 'Needs Revision'];
 async function start(){
   $('#login').hidden = true; $('#app').hidden = false; $('#main').innerHTML = '<div class="loading">Loading submissions…</div>';
   try {
-    const d = await api('dashboard'); ME = d.user; ROWS = d.rows || []; QUOTA = d.emailQuota;
+    const d = await api('dashboard'); ME = d.user; ROWS = d.rows || []; QUOTA = d.emailQuota; SETTINGS = d.config || {};
     $('#whoName').textContent = ME.name || ME.u; $('#whoUser').textContent = '@' + ME.u;
     $('#whoRole').textContent = ME.role; $('#whoRole').className = 'role ' + ME.role;
     $$('.adm').forEach(b => b.hidden = ME.role !== 'admin');
@@ -303,7 +305,7 @@ async function start(){
 $$('#nav button').forEach(b => b.onclick = () => show(b.dataset.v));
 function show(v){
   VIEW = v; $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-  ({ overview, subs, faculty, audit, account })[v]();
+  ({ overview, subs, faculty, audit, account, settings })[v]();
 }
 const scope = () => ME.divs === 'ALL' ? 'All divisions' : 'Divisions ' + ME.divs;
 function header(t, extra = ''){
@@ -471,6 +473,25 @@ async function audit(){
     <div class="tbl"><table style="min-width:640px"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody>${lg.length ? lg.map(l => `<tr style="cursor:default"><td class="sub mono">${esc(l.time)}</td><td class="mono">@${esc(l.user)}</td><td class="act" style="color:${col[l.action] || 'var(--ink2)'}">${esc(l.action)}</td><td class="sub">${esc(l.details)}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">No events yet</td></tr>'}</tbody></table></div>`;
     $('#rl').onclick = audit;
   } catch (e) { $('#main').innerHTML = header('Audit log') + `<div class="card empty">${esc(e.message)}</div>`; }
+}
+
+/* ---------- settings (admin) ---------- */
+function settings(){
+  const dl = SETTINGS.DEADLINE ? new Date(SETTINGS.DEADLINE) : null;
+  const pad = n => String(n).padStart(2, '0');
+  const local = dl ? new Date(dl.getTime() + 330 * 60000) : null;   // IST for the input
+  const val = local ? local.getUTCFullYear() + '-' + pad(local.getUTCMonth() + 1) + '-' + pad(local.getUTCDate()) + 'T' + pad(local.getUTCHours()) + ':' + pad(local.getUTCMinutes()) : '';
+  $('#main').innerHTML = header('Settings') + `<div class="card" style="max-width:560px"><h3>Submission deadline</h3><div class="cap">Changes apply instantly to the student page: countdown, LATE flag and closing. No redeploy needed.</div>
+  <label class="lbl">Deadline (IST)</label><input class="in" type="datetime-local" id="dl" value="${val}">
+  <div class="sub" style="margin-top:6px">Current: <b>${dl ? dl.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'short'}) : 'no deadline'}</b></div>
+  <label class="lbl" style="display:flex;gap:10px;align-items:center;margin-top:16px"><input type="checkbox" id="al" ${SETTINGS.ACCEPT_LATE !== false ? 'checked' : ''} style="width:18px;height:18px"> Accept late submissions (marked LATE). Untick to close the form after the deadline.</label>
+  <div style="display:flex;gap:10px;margin-top:18px"><button class="btn pri" id="sv">Save settings</button><button class="btn sec" id="nod">Remove deadline</button></div></div>`;
+  const save = async (deadline) => {
+    try { const r = await api('saveSettings', {deadline, acceptLate: $('#al').checked}); SETTINGS.DEADLINE = r.DEADLINE; SETTINGS.ACCEPT_LATE = r.ACCEPT_LATE; toast('⚙️ Settings saved: live on the student page'); settings(); }
+    catch (e) { toast('⚠ ' + e.message); }
+  };
+  $('#sv').onclick = () => { const v = $('#dl').value; save(v ? v + ':00+05:30' : ''); };
+  $('#nod').onclick = () => save('');
 }
 
 /* ---------- account ---------- */

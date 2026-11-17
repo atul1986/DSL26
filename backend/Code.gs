@@ -162,11 +162,15 @@ const ROUTES = {
   facultySave: r => facultySave_(auth_(r, true), r.account || {}),
   facultyDelete: r => facultyDelete_(auth_(r, true), r.username),
   testEmail: r => testEmail_(auth_(r, true)),
+  saveSettings: r => saveSettings_(auth_(r, true), r.deadline, r.acceptLate),
   links: r => { auth_(r, true); const d = db_(); return { sheetUrl: d.ss.getUrl(), folderUrl: d.folder.getUrl() }; }
 };
 
 /* ================================================================ HELPERS */
 
+/* Deadline & late rule can be changed from the faculty dashboard (stored in Script Properties). */
+function deadline_() { const v = PropertiesService.getScriptProperties().getProperty('DEADLINE'); return v == null ? CONFIG.DEADLINE : v; }
+function acceptLate_() { const v = PropertiesService.getScriptProperties().getProperty('ACCEPT_LATE'); return v == null ? CONFIG.ACCEPT_LATE : v === 'true'; }
 const now_ = () => Utilities.formatDate(new Date(), TZ, 'dd-MM-yyyy HH:mm:ss');
 const clean_ = (s, max) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max || 300);
 const safe_ = s => /^[=+\-@]/.test(String(s)) ? "'" + s : String(s);   // block spreadsheet formula injection
@@ -189,6 +193,7 @@ function log_(user, action, details) {
 }
 function publicConfig_() {
   const c = {}; ['UNIVERSITY', 'SCHOOL', 'LAB_NAME', 'CLASS_NAME', 'ACADEMIC_YEAR', 'DEADLINE', 'ACCEPT_LATE', 'MAX_FILE_MB', 'DIVISIONS', 'PROGRAMS', 'DOMAINS', 'STATUSES'].forEach(k => c[k] = CONFIG[k]);
+  c.DEADLINE = deadline_(); c.ACCEPT_LATE = acceptLate_();
   c.serverNow = new Date().toISOString();
   return c;
 }
@@ -271,8 +276,9 @@ function submit_(payload) {
   cache.put('rate', String(rate + 1), 60);
 
   const d = validate_(payload);
-  const late = !!(CONFIG.DEADLINE && new Date() > new Date(CONFIG.DEADLINE));
-  if (late && !CONFIG.ACCEPT_LATE) throw new Error('The submission deadline has passed. Please contact your lab faculty.');
+  const dl = deadline_();
+  const late = !!(dl && new Date() > new Date(dl));
+  if (late && !acceptLate_()) throw new Error('The submission deadline has passed. Please contact your lab faculty.');
 
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
@@ -547,4 +553,15 @@ function testEmail_(s) {
 /** Run once from the editor after updating the code, to grant the "send email" permission. */
 function authorizeEmail() {
   Logger.log('Emails left today: ' + MailApp.getRemainingDailyQuota());
+}
+
+function saveSettings_(s, deadline, acceptLate) {
+  deadline = String(deadline || '').trim();
+  if (deadline && isNaN(new Date(deadline).getTime())) throw new Error('Invalid deadline date.');
+  const p = PropertiesService.getScriptProperties();
+  p.setProperty('DEADLINE', deadline);
+  p.setProperty('ACCEPT_LATE', acceptLate ? 'true' : 'false');
+  CacheService.getScriptCache().remove('stats');
+  log_(s.u, 'SETTINGS', 'deadline=' + (deadline || 'none') + ' acceptLate=' + !!acceptLate);
+  return { DEADLINE: deadline, ACCEPT_LATE: !!acceptLate };
 }
