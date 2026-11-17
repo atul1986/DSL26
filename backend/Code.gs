@@ -17,7 +17,7 @@ const CONFIG = {
   LAB_NAME: 'Data Structures Laboratory (DSL)',
   CLASS_NAME: 'Second Year B.Tech',
   ACADEMIC_YEAR: '2026-27',
-  DEADLINE: '2026-12-15T23:59:00+05:30',   // '' = no deadline
+  DEADLINE: '2026-11-20T23:59:00+05:30',   // '' = no deadline
   ACCEPT_LATE: true,                        // false = close submissions after the deadline
   MAX_FILE_MB: 10,
   DIVISIONS: 'ABCDEFGHIJKLM'.split(''),
