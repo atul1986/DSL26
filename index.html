@@ -8,7 +8,7 @@
 <link rel="icon" href="https://adypu.edu.in/wp-content/uploads/2023/03/cropped-favicon-1-270x270.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="assets/config.js?v=20261117"></script>
+<script src="assets/config.js?v=20261117b"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 <style>
 :root{
@@ -139,7 +139,7 @@ h1 code{font-family:var(--mono);font-size:.62em;color:var(--brand);letter-spacin
 .slot-b{padding:14px 14px 2px;display:none}
 .slot.open .slot-b{display:block}
 .slot.filled .slot-h .nm{color:var(--ink)}
-.g3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 @media(max-width:640px){.g3{grid-template-columns:1fr}}
 .clr{border:0;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;font-weight:600;padding:0 0 12px}
 .clr:hover{color:var(--err)}
@@ -360,7 +360,7 @@ footer{border-top:1px solid var(--line);margin-top:30px}
           <ul class="chk" id="chk"></ul>
           <div class="meter"><div id="meter"></div></div>
           <div class="mtxt" id="mtxt">0% complete</div>
-          <div class="rules">📌 <b>Rules:</b> one submission per team, made by the team leader. A URN can belong to only <b>one</b> team. Keep your Submission ID safe to track your review.</div>
+          <div class="rules">📧 A confirmation email goes to every team member who adds an email, plus updates when faculty review the project.<br><br>📌 <b>Rules:</b> one submission per team, made by the team leader. A URN can belong to only <b>one</b> team. Keep your Submission ID safe to track your review.</div>
           <div class="saved" id="saved">💾 Draft auto-saves on this device</div>
         </aside>
       </div>
@@ -400,6 +400,7 @@ footer{border-top:1px solid var(--line);margin-top:30px}
         <div class="tk-id" id="rId"></div>
         <span class="q" id="rQ"></span><span class="late" id="rLate" hidden>⏰ after deadline</span>
         <dl class="kv" id="rKv"></dl>
+        <div id="rMail" style="margin-top:10px;font-size:12.5px;color:var(--ink2);background:var(--bg);border-radius:10px;padding:8px 10px"></div>
       </div>
       <div class="qr"><div id="rQr"></div>scan to save</div>
     </div>
@@ -446,7 +447,7 @@ const Demo = {
   submit: ({payload: p}) => {
     for (const r of demo.rows) for (const m of r.members) if (p.members.some(x => x.urn === m.urn)) throw new Error('URN ' + m.urn + ' is already part of submission ' + r.id + '.');
     demo.seq[p.division] = (demo.seq[p.division] || 0) + 1;
-    const r = { id: 'DSL-' + p.division + '-' + String(demo.seq[p.division]).padStart(3, '0'), late: CFG.DEADLINE && new Date() > new Date(CFG.DEADLINE), queue: (demo.stats.byDiv[p.division] || 0) + 1,
+    const r = { emailed: '', id: 'DSL-' + p.division + '-' + String(demo.seq[p.division]).padStart(3, '0'), late: CFG.DEADLINE && new Date() > new Date(CFG.DEADLINE), queue: (demo.stats.byDiv[p.division] || 0) + 1,
       submittedOn: new Date().toLocaleString('en-IN'), program: p.program, division: p.division, title: p.title, members: p.members.map(m => ({name: m.name, urn: m.urn})), fileName: p.file.name, status: 'Submitted', remarks: '' };
     demo.rows.push(r); demo.stats.byDiv[p.division]++; demo.stats.total++; demo.stats.students += p.members.length; return r;
   },
@@ -538,6 +539,7 @@ for (let i = 0; i < 4; i++) {
       <div class="f"><label>Full name ${i ? '' : '<span class="r">*</span>'}</label><input data-k="name" maxlength="80" placeholder="First Middle Last"><div class="m">Enter full name.</div></div>
       <div class="f"><label>URN no. ${i ? '' : '<span class="r">*</span>'}</label><input data-k="urn" maxlength="25" placeholder="URN" class="mono" style="text-transform:uppercase"><div class="m">Enter a valid URN.</div></div>
       <div class="f"><label>Contact no. ${i ? '<span class="o">(optional)</span>' : '<span class="r">*</span>'}</label><input data-k="contact" maxlength="10" inputmode="numeric" placeholder="10-digit mobile"><div class="m">10-digit mobile number.</div></div>
+      <div class="f"><label>Email ${i ? '<span class="o">(optional)</span>' : '<span class="r">*</span> <span class="o">confirmation is sent here</span>'}</label><input data-k="email" type="email" maxlength="120" placeholder="name@example.com" autocomplete="off"><div class="m">Enter a valid email address.</div></div>
     </div>${i ? '<button type="button" class="clr" data-clear="' + i + '">✕ Remove this student</button>' : ''}</div></div>`);
 }
 const slots = $$('.slot');
@@ -552,7 +554,7 @@ slotsEl.addEventListener('input', e => {
   if (k === 'urn') e.target.value = e.target.value.replace(/[^A-Za-z0-9\/\-]/g, '');
   e.target.closest('.f').classList.remove('bad'); update();
 });
-const members = () => slots.map(s => ({ name: s.querySelector('[data-k=name]').value.trim(), urn: s.querySelector('[data-k=urn]').value.trim().toUpperCase(), contact: s.querySelector('[data-k=contact]').value.trim() }));
+const members = () => slots.map(s => ({ name: s.querySelector('[data-k=name]').value.trim(), urn: s.querySelector('[data-k=urn]').value.trim().toUpperCase(), contact: s.querySelector('[data-k=contact]').value.trim(), email: s.querySelector('[data-k=email]').value.trim().toLowerCase() }));
 function drawSlots(){
   const ms = members(); let n = 0;
   ms.forEach((m, i) => {
@@ -585,14 +587,14 @@ $('#fchange').onclick = () => { file = null; $('#file').value = ''; $('#fcard').
 $('#drop').addEventListener('drop', e => setFile(e.dataTransfer.files[0]));
 
 /* ---------------- validation ---------------- */
-const RX_PHONE = /^[6-9]\d{9}$/, RX_URN = /^[A-Za-z0-9\/\-]{4,25}$/;
+const RX_PHONE = /^[6-9]\d{9}$/, RX_URN = /^[A-Za-z0-9\/\-]{4,25}$/, RX_MAIL = /^[^\s@<>()",;:]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 function stepValid(){
   const m0 = members()[0];
-  const extrasOk = members().slice(1).every(m => !(m.name || m.urn || m.contact) || (m.name.length >= 2 && RX_URN.test(m.urn) && (!m.contact || RX_PHONE.test(m.contact))));
+  const extrasOk = members().slice(1).every(m => !(m.name || m.urn || m.contact || m.email) || (m.name.length >= 2 && RX_URN.test(m.urn) && (!m.contact || RX_PHONE.test(m.contact)) && (!m.email || RX_MAIL.test(m.email))));
   return [
     !!$('#program').value && !!$('#division').value,
     $('#title').value.trim().length >= 5 && (!$('#repo').value.trim() || /^https?:\/\//i.test($('#repo').value.trim())),
-    m0.name.length >= 2 && RX_URN.test(m0.urn) && RX_PHONE.test(m0.contact) && extrasOk,
+    m0.name.length >= 2 && RX_URN.test(m0.urn) && RX_PHONE.test(m0.contact) && RX_MAIL.test(m0.email) && extrasOk,
     !!file && $('#decl').checked
   ];
 }
@@ -604,7 +606,7 @@ function validateStep(k){
   if (k === 2) {
     const seen = {};
     members().forEach((m, i) => {
-      const s = slots[i]; if (i && !(m.name || m.urn || m.contact)) return;
+      const s = slots[i]; if (i && !(m.name || m.urn || m.contact || m.email)) return;
       const q = x => s.querySelector('[data-k=' + x + ']');
       let sOk = true;
       if (m.name.length < 2) sOk = bad(q('name'), i ? 'Name is required if this student is added.' : 'Enter full name.');
@@ -612,6 +614,7 @@ function validateStep(k){
       else if (seen[m.urn]) sOk = bad(q('urn'), 'Same URN entered twice.');
       seen[m.urn] = 1;
       if ((!i || m.contact) && !RX_PHONE.test(m.contact)) sOk = bad(q('contact'), '10-digit mobile number.');
+      if ((!i || m.email) && !RX_MAIL.test(m.email)) sOk = bad(q('email'), i ? 'Enter a valid email address.' : 'Leader email is required: the confirmation is sent here.');
       if (!sOk) { ok = false; s.classList.add('open'); }
     });
   }
@@ -630,7 +633,7 @@ function update(){
   $('#absN').textContent = $('#abstract').value.length;
   drawSlots();
   const m0 = members()[0];
-  const items = [['Program & division', !!$('#program').value && !!$('#division').value], ['Project title', $('#title').value.trim().length >= 5], ['Team leader details', m0.name.length >= 2 && RX_URN.test(m0.urn) && RX_PHONE.test(m0.contact)], ['Report uploaded', !!file], ['Declaration accepted', $('#decl').checked]];
+  const items = [['Program & division', !!$('#program').value && !!$('#division').value], ['Project title', $('#title').value.trim().length >= 5], ['Team leader details + email', m0.name.length >= 2 && RX_URN.test(m0.urn) && RX_PHONE.test(m0.contact) && RX_MAIL.test(m0.email)], ['Report uploaded', !!file], ['Declaration accepted', $('#decl').checked]];
   const n = items.filter(x => x[1]).length, pct = Math.round(n / items.length * 100);
   $('#chk').innerHTML = items.map(([t, v]) => `<li class="${v ? 'ok' : ''}"><i></i>${t}</li>`).join('');
   $('#meter').style.width = pct + '%'; $('#mtxt').textContent = pct + '% complete' + (pct === 100 ? ' · ready to push!' : '');
@@ -648,7 +651,7 @@ function restoreDraft(){
   try {
     const d = JSON.parse(store.get('dsl_draft') || 'null'); if (!d) return update();
     ['program','division','title','domain','repo','abstract'].forEach(k => { if (d[k]) $('#' + k).value = d[k]; });
-    (d.members || []).forEach((m, i) => { if (!slots[i]) return; ['name','urn','contact'].forEach(k => slots[i].querySelector('[data-k=' + k + ']').value = m[k] || ''); if (i && (m.name || m.urn)) slots[i].classList.add('open'); });
+    (d.members || []).forEach((m, i) => { if (!slots[i]) return; ['name','urn','contact','email'].forEach(k => slots[i].querySelector('[data-k=' + k + ']').value = m[k] || ''); if (i && (m.name || m.urn)) slots[i].classList.add('open'); });
     if (d.title || (d.members && d.members[0] && d.members[0].name)) toast('↺ Your saved draft was restored');
   } catch (e) {}
   update();
@@ -666,7 +669,7 @@ async function submit(){
   for (let k = 0; k < 4; k++) if (!validateStep(k)) { go(k); return; }
   const btn = $('#next'); btn.disabled = true; btn.classList.add('busy'); $('#nextTxt').textContent = 'Uploading… keep this page open';
   try {
-    const ms = members().filter((m, i) => i === 0 || m.name || m.urn || m.contact);
+    const ms = members().filter((m, i) => i === 0 || m.name || m.urn || m.contact || m.email);
     const r = await api('submit', { payload: { website: $('#website').value, program: $('#program').value, division: $('#division').value, title: $('#title').value.trim(), domain: $('#domain').value, repo: $('#repo').value.trim(), abstract: $('#abstract').value.trim(), members: ms, file: { name: file.name, type: file.type, data: await b64(file) } } });
     store.del('dsl_draft'); showReceipt(r); api('init').then(d => drawRace(d.stats)).catch(() => {});
   } catch (e) {
@@ -676,6 +679,7 @@ async function submit(){
 function showReceipt(r){
   $('#rId').textContent = r.id; $('#rLate').hidden = !r.late;
   $('#rQ').textContent = '🧾 #' + r.queue + ' in Division ' + r.division + ' review queue';
+  $('#rMail').innerHTML = r.emailed ? '📧 Confirmation email sent to <b>' + esc(r.emailed) + '</b>' : (API ? '📧 Confirmation email could not be sent right now. Please screenshot this ticket.' : '📧 (Preview) A confirmation email would be sent to the team.');
   $('#rKv').innerHTML = [['Submitted', r.submittedOn], ['Program', r.program], ['Title', r.title], ['Team', r.members.map(m => m.name).join(', ')], ['File', r.fileName]].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   try { const q = qrcode(0, 'M'); q.addData(r.id + ' | ' + r.title + ' | ADYPU DSL Lab'); q.make(); $('#rQr').innerHTML = q.createSvgTag({cellSize: 4, margin: 0, scalable: true}); } catch (e) { $('#rQr').parentNode.style.display = 'none'; }
   $('#receipt').classList.add('show'); confetti();

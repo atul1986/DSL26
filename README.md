@@ -24,6 +24,13 @@ Faculty browser ──► GitHub Pages (admin.html) ──►   (Code.gs)     �
 
 Extra features: step-by-step wizard drawn as a linked list, team drawn as an array (`team[0..3]`), live **Division race** leaderboard, deadline countdown, draft auto-save, duplicate-URN protection, a submission ticket with QR code and **queue position**, Track Status page, and dark mode.
 
+## Email notifications
+- Students give an email (team leader compulsory, others optional).
+- **On submission** the whole team gets a confirmation email: Submission ID, details, track link.
+- **On review** (status or remarks changed) the team gets an update email with the faculty remarks.
+- Sent from the Google account that deployed the script; replies go to `REPLY_TO` in `CONFIG`.
+- Free Gmail limit: about **100 emails/day** (Workspace: 1,500). The dashboard shows how many are left today; if the limit is reached the submission is still saved and the sheet's *Email Log* column records it.
+
 ## Faculty security
 - Username + password, **salted & hashed** (SHA-256 × 1000), never stored in plain text
 - **Lockout**: 5 wrong attempts → account locked for 15 min

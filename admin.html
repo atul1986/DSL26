@@ -8,7 +8,7 @@
 <title>Faculty Console · DSL Lab · ADYPU</title>
 <link rel="icon" href="https://adypu.edu.in/wp-content/uploads/2023/03/cropped-favicon-1-270x270.png">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="assets/config.js?v=20261117"></script>
+<script src="assets/config.js?v=20261117b"></script>
 <style>
 :root{--bg:#f4f4f0;--paper:#fff;--ink:#0d0f1a;--ink2:#3b4058;--muted:#6b7089;--line:#e6e4dc;--brand:#3d2fd6;--lime:#c8f560;--coral:#ff6a4d;--ok:#0fa36b;--warn:#c97a00;--err:#dc3545;--mono:'JetBrains Mono',ui-monospace,monospace;--head:'Space Grotesk',system-ui,sans-serif;--sans:'Inter',system-ui,sans-serif;--shadow:0 1px 0 var(--line),0 14px 34px -18px #0d0f1a2e}
 [data-theme=dark]{--bg:#0b0d16;--paper:#141726;--ink:#eef0fa;--ink2:#c3c7dc;--muted:#8a90ad;--line:#262a40;--shadow:0 1px 0 var(--line),0 14px 34px -18px #000}
@@ -230,7 +230,7 @@ const Demo = (() => {
     const n = 1 + (Math.random() * 4 | 0), st = pick(S), d = new Date(Date.now() - Math.random() * 12 * 864e5);
     rows.push({ id: 'DSL-' + div + '-' + String(seq[div]).padStart(3, '0'), submittedOn: d.toLocaleString('en-IN'), program: pick(P), division: div, title: pick(T), domain: pick(D),
       abstract: 'Menu-driven C++ implementation of the core operations, applied to a real campus problem with complexity analysis.', repo: Math.random() > .5 ? 'https://github.com/example/dsl' : '',
-      members: Array.from({length: n}, (_, k) => ({ name: pick(F) + ' ' + pick(L), urn: '2025' + div + (100 + i * 4 + k), contact: !k || Math.random() > .4 ? '98XXXXX' + (100 + Math.random() * 899 | 0) : '' })),
+      members: Array.from({length: n}, (_, k) => ({ name: pick(F) + ' ' + pick(L), urn: '2025' + div + (100 + i * 4 + k), contact: !k || Math.random() > .4 ? '98XXXXX' + (100 + Math.random() * 899 | 0) : '', email: !k ? 'st•••@gmail.com' : '' })),
       fileName: 'DSL-' + div + '_report.pdf', late: Math.random() > .86, status: st, remarks: st === 'Needs Revision' ? 'Add time-complexity table and output screenshots.' : '', reviewedOn: st === 'Submitted' ? '' : d.toLocaleDateString('en-IN'), reviewedBy: st === 'Submitted' ? '' : 'Lab Coordinator' });
   }
   const fac = [{username: 'demo', name: 'Lab Coordinator', role: 'admin', divisions: 'ALL', active: true, created: '01-11-2026', lastLogin: 'now'}, {username: 'prof.sharma', name: 'Prof. A. Sharma', role: 'faculty', divisions: 'A,B,C', active: true, created: '05-11-2026', lastLogin: '16-11-2026 10:12'}];
@@ -239,9 +239,9 @@ const Demo = (() => {
   return {
     login: ({username, password}) => { if (username !== 'demo' || password !== 'demo') throw new Error('Invalid username or password. (Preview: demo / demo)'); return { token: 'demo', user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'} }; },
     logout: () => true,
-    dashboard: () => ({ user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'}, rows: JSON.parse(JSON.stringify(rows)) }),
-    review: ({id, status, remarks}) => { const r = rows.find(x => x.id === id); r.status = status; r.remarks = remarks; r.reviewedOn = new Date().toLocaleString('en-IN'); r.reviewedBy = 'Lab Coordinator'; lg('REVIEW', id + ' → ' + status); return { reviewedOn: r.reviewedOn, reviewedBy: r.reviewedBy }; },
-    reveal: ({id}) => { lg('VIEW_CONTACTS', id); return rows.find(x => x.id === id).members.map(m => Object.assign({}, m, {contact: m.contact ? '98765' + m.contact.slice(-5).replace(/X/g, '4') : ''})); },
+    dashboard: () => ({ emailQuota: 100, user: {u: 'demo', name: 'Lab Coordinator', role: 'admin', divs: 'ALL'}, rows: JSON.parse(JSON.stringify(rows)) }),
+    review: ({id, status, remarks}) => { const r = rows.find(x => x.id === id); r.status = status; r.remarks = remarks; r.reviewedOn = new Date().toLocaleString('en-IN'); r.reviewedBy = 'Lab Coordinator'; lg('REVIEW', id + ' → ' + status); return { reviewedOn: r.reviewedOn, reviewedBy: r.reviewedBy, emailed: 'team' }; },
+    reveal: ({id}) => { lg('VIEW_CONTACTS', id); return rows.find(x => x.id === id).members.map(m => Object.assign({}, m, {contact: m.contact ? '98765' + m.contact.slice(-5).replace(/X/g, '4') : '', email: m.email ? 'student' + id.slice(-3) + '@gmail.com' : ''})); },
     file: ({id}) => { lg('DOWNLOAD_FILE', id); return { name: id + '_sample.txt', mime: 'text/plain', data: btoa('Preview mode: real files download from your private Google Drive once the backend is connected.') }; },
     export: () => { lg('EXPORT', 'full CSV export'); return { filename: 'DSL_Submissions_preview.csv', csv: 'Submission ID,Division,Title\n' + rows.map(r => [r.id, r.division, '"' + r.title + '"'].join(',')).join('\n') }; },
     logs: () => logs,
@@ -249,6 +249,7 @@ const Demo = (() => {
     facultySave: ({account: a}) => { const f = fac.find(x => x.username === a.username); if (f) Object.assign(f, a, {active: a.active !== false}); else fac.push(Object.assign({created: new Date().toLocaleDateString('en-IN'), lastLogin: ''}, a, {active: true})); lg(f ? 'FACULTY_UPDATED' : 'FACULTY_CREATED', a.username); return true; },
     facultyDelete: ({username}) => { fac.splice(fac.findIndex(x => x.username === username), 1); lg('FACULTY_DELETED', username); return true; },
     changePassword: () => { lg('PASSWORD_CHANGED', ''); return true; },
+    testEmail: () => ({ sentTo: 'atul.kathole1910@gmail.com', quota: 99 }),
     links: () => ({ sheetUrl: '#', folderUrl: '#' })
   };
 })();
@@ -287,12 +288,12 @@ setInterval(() => {
 }, 1000);
 
 /* ---------------- app ---------------- */
-let ROWS = [], VIEW = 'overview', F = { q: '', div: '', prog: '', status: '' }, SK = 'id', SD = 1;
+let QUOTA = null, ROWS = [], VIEW = 'overview', F = { q: '', div: '', prog: '', status: '' }, SK = 'id', SD = 1;
 const DIVS = 'ABCDEFGHIJKLM'.split(''), STATUSES = ['Submitted', 'Under Review', 'Approved', 'Needs Revision'];
 async function start(){
   $('#login').hidden = true; $('#app').hidden = false; $('#main').innerHTML = '<div class="loading">Loading submissions…</div>';
   try {
-    const d = await api('dashboard'); ME = d.user; ROWS = d.rows || [];
+    const d = await api('dashboard'); ME = d.user; ROWS = d.rows || []; QUOTA = d.emailQuota;
     $('#whoName').textContent = ME.name || ME.u; $('#whoUser').textContent = '@' + ME.u;
     $('#whoRole').textContent = ME.role; $('#whoRole').className = 'role ' + ME.role;
     $$('.adm').forEach(b => b.hidden = ME.role !== 'admin');
@@ -325,7 +326,7 @@ function overview(){
     <div class="kpi"><small>👥 Students covered</small><b>${stud}</b><div class="sub">avg team ${(stud / Math.max(1, ROWS.length)).toFixed(1)}</div></div>
     <div class="kpi"><small>⏳ Awaiting review</small><b>${pend}</b></div>
     <div class="kpi"><small>✅ Reviewed</small><b>${rev}</b><div class="mb"><i style="width:${rev / Math.max(1, ROWS.length) * 100}%"></i></div></div>
-    <div class="kpi"><small>⏰ Late</small><b>${late}</b></div>
+    <div class="kpi"><small>📧 Emails left today</small><b>${QUOTA == null ? '-' : QUOTA}</b><div class="sub">late submissions: ${late}</div></div>
   </div>
   <div class="g2">
     <div class="card"><h3>Submissions by division</h3><div class="cap">Click a bar to open that division${miss.length ? ` · <b style="color:var(--coral)">no submissions yet: ${miss.join(', ')}</b>` : ' · all divisions have submitted 🎉'}</div>
@@ -397,8 +398,8 @@ function openDr(id){
   <div class="dr-b">
     ${r.late ? '<span class="lt" style="margin:0">⏰ LATE SUBMISSION</span>' : ''}
     <h4>Team (${r.members.length})</h4>
-    <div id="mems">${r.members.map((m, i) => `<div class="mem"><div class="av ${i ? '' : 'ld'}">${esc(ini(m.name))}</div><div style="flex:1"><b>${esc(m.name)}</b>${i ? '' : ' <span class="sub">· leader</span>'}<div class="sub mono">${esc(m.urn)}</div></div><span class="mono ct" style="font-size:13px">${esc(m.contact || '-')}</span></div>`).join('')}</div>
-    <button class="reveal" id="rev" style="margin-top:10px">👁 Reveal contact numbers (logged)</button>
+    <div id="mems">${r.members.map((m, i) => `<div class="mem"><div class="av ${i ? '' : 'ld'}">${esc(ini(m.name))}</div><div style="flex:1"><b>${esc(m.name)}</b>${i ? '' : ' <span class="sub">· leader</span>'}<div class="sub mono">${esc(m.urn)}</div></div><div style="text-align:right"><span class="mono ct" style="font-size:13px">${esc(m.contact || '-')}</span><div class="sub em">${esc(m.email || '')}</div></div></div>`).join('')}</div>
+    <button class="reveal" id="rev" style="margin-top:10px">👁 Reveal phone &amp; email (logged)</button>
     <h4>Project</h4>
     <div style="font-size:13.5px;line-height:1.55">${r.domain ? '<b>Data structure:</b> ' + esc(r.domain) + '<br>' : ''}${r.abstract ? esc(r.abstract) : '<span class="sub">No abstract</span>'}</div>
     ${r.repo ? `<div style="margin-top:8px"><a href="${esc(r.repo)}" target="_blank" rel="noopener noreferrer" style="color:var(--brand);font-weight:700">Code repository ↗</a></div>` : ''}
@@ -406,17 +407,17 @@ function openDr(id){
     <div class="sub" style="margin-top:8px">Submitted ${esc(r.submittedOn)}${r.reviewedOn ? ' · last reviewed ' + esc(r.reviewedOn) + ' by ' + esc(r.reviewedBy) : ''}</div>
     <h4>Review decision</h4>
     <div class="sgrid">${STATUSES.map(s => `<div class="so ${s === st ? 'on' : ''}" data-so="${s}">${s}</div>`).join('')}</div>
-    <h4>Remarks for students <span style="text-transform:none;letter-spacing:0;font-weight:500">(shown on Track Status)</span></h4>
+    <h4>Remarks for students <span style="text-transform:none;letter-spacing:0;font-weight:500">(shown on Track Status and emailed to the team)</span></h4>
     <textarea class="in" id="rmk" maxlength="500" placeholder="e.g. Add complexity analysis and sample outputs">${esc(r.remarks)}</textarea>
   </div>
   <div class="dr-f"><button class="btn sec" id="dc" style="flex:1;justify-content:center">Cancel</button><button class="btn pri" id="dsv" style="flex:2;justify-content:center">Save review</button></div>`;
   $('#ov').classList.add('show'); $('#dr').classList.add('show');
   $('#dx').onclick = $('#dc').onclick = closeDr;
   $$('[data-so]').forEach(o => o.onclick = () => { st = o.dataset.so; $$('[data-so]').forEach(x => x.classList.toggle('on', x === o)); });
-  $('#rev').onclick = async () => { $('#rev').disabled = true; try { const ms = await api('reveal', {id}); $$('#mems .ct').forEach((el, i) => el.innerHTML = ms[i] && ms[i].contact ? `<a href="tel:${esc(ms[i].contact)}" style="color:var(--brand);font-weight:700">${esc(ms[i].contact)}</a>` : '-'); $('#rev').textContent = '✓ Contacts revealed · view logged'; } catch (e) { toast('⚠ ' + e.message); $('#rev').disabled = false; } };
+  $('#rev').onclick = async () => { $('#rev').disabled = true; try { const ms = await api('reveal', {id}); $$('#mems .ct').forEach((el, i) => el.innerHTML = ms[i] && ms[i].contact ? `<a href="tel:${esc(ms[i].contact)}" style="color:var(--brand);font-weight:700">${esc(ms[i].contact)}</a>` : '-'); $$('#mems .em').forEach((el, i) => el.innerHTML = ms[i] && ms[i].email ? `<a href="mailto:${esc(ms[i].email)}" style="color:var(--brand)">${esc(ms[i].email)}</a>` : ''); $('#rev').textContent = '✓ Contacts revealed · view logged'; } catch (e) { toast('⚠ ' + e.message); $('#rev').disabled = false; } };
   $('#dlf').onclick = async () => { const b = $('#dlf'); b.disabled = true; b.textContent = 'Fetching…'; try { const f = await api('file', {id}); dl(f.name, f.mime, f.data); toast('⬇ ' + f.name); } catch (e) { toast('⚠ ' + e.message); } finally { b.disabled = false; b.textContent = '⬇ Download'; } };
   $('#dsv').onclick = async () => { const b = $('#dsv'); b.disabled = true; b.textContent = 'Saving…';
-    try { const res = await api('review', {id, status: st, remarks: $('#rmk').value.trim()}); Object.assign(r, {status: st, remarks: $('#rmk').value.trim()}, res); closeDr(); table(); toast('✓ Review saved for ' + id); }
+    try { const res = await api('review', {id, status: st, remarks: $('#rmk').value.trim()}); Object.assign(r, {status: st, remarks: $('#rmk').value.trim()}, res); closeDr(); table(); toast('✓ Review saved' + (res.emailed ? ' · team emailed' : '')); }
     catch (e) { toast('⚠ ' + e.message); b.disabled = false; b.textContent = 'Save review'; } };
 }
 function closeDr(){ $('#ov').classList.remove('show'); $('#dr').classList.remove('show'); }
@@ -479,7 +480,9 @@ function account(){
   <label class="lbl">New password</label><input class="in" type="password" id="np" autocomplete="new-password">
   <label class="lbl">Confirm new password</label><input class="in" type="password" id="np2" autocomplete="new-password">
   <button class="btn pri" id="cp" style="margin-top:16px">Update password</button>
+  ${ME.role === 'admin' ? '<button class="btn sec" id="te" style="margin-top:10px">📧 Send test email to the reply-to address</button>' : ''}
   <div class="sub" style="margin-top:16px;line-height:1.6">Signed in as <b>@${esc(ME.u)}</b> (${esc(ME.role)}) · access: ${esc(scope())}</div></div>`;
+  if ($('#te')) $('#te').onclick = async () => { try { const r = await api('testEmail'); toast('📧 Test sent to ' + r.sentTo + ' · ' + r.quota + ' left today'); } catch (e) { toast('⚠ ' + e.message); } };
   $('#cp').onclick = async () => {
     if ($('#np').value !== $('#np2').value) return toast('⚠ New passwords do not match');
     try { await api('changePassword', {oldPassword: $('#op').value, newPassword: $('#np').value}); toast('🔑 Password updated'); account(); } catch (e) { toast('⚠ ' + e.message); }

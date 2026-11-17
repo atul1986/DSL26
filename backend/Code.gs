@@ -39,6 +39,13 @@ const CONFIG = {
   BLOCK_DUPLICATE_URN: true,
   STATUSES: ['Submitted', 'Under Review', 'Approved', 'Needs Revision'],
   SESSION_MINUTES: 120,
+  // ---- Email notifications (sent from the Google account that deployed this script)
+  EMAIL_ENABLED: true,
+  NOTIFY_ON_REVIEW: true,                         // email the team when faculty update the status
+  SENDER_NAME: 'DSL Lab · ADYPU School of Engineering',
+  REPLY_TO: 'atul.kathole1910@gmail.com',
+  SITE_URL: 'https://atul1986.github.io/DSL26/',
+  LOGO_URL: 'https://adypu.edu.in/wp-content/themes/adypu/images/logo.png',
   MAX_LOGIN_FAILS: 5,
   LOCK_MINUTES: 15
 };
@@ -49,7 +56,8 @@ const HEADERS = [
   'Submission ID', 'Submitted On', 'Program', 'Division', 'Project Title', 'Domain', 'Abstract', 'Code / Repo Link', 'Team Size',
   'S1 Name (Leader)', 'S1 URN', 'S1 Contact', 'S2 Name', 'S2 URN', 'S2 Contact',
   'S3 Name', 'S3 URN', 'S3 Contact', 'S4 Name', 'S4 URN', 'S4 Contact',
-  'File Name', 'File Link', 'File ID', 'Late', 'Status', 'Faculty Remarks', 'Reviewed On', 'Reviewed By'
+  'File Name', 'File Link', 'File ID', 'Late', 'Status', 'Faculty Remarks', 'Reviewed On', 'Reviewed By',
+  'S1 Email', 'S2 Email', 'S3 Email', 'S4 Email', 'Email Log'
 ];
 const FAC_HEADERS = ['Username', 'Name', 'Role', 'Divisions', 'Salt', 'Hash', 'Active', 'Created On', 'Last Login'];
 const LOG_HEADERS = ['Time', 'User', 'Action', 'Details'];
@@ -108,7 +116,12 @@ function db_() {
   const p = PropertiesService.getScriptProperties();
   if (!p.getProperty('SHEET_ID') || !p.getProperty('FOLDER_ID')) setup();
   const ss = SpreadsheetApp.openById(p.getProperty('SHEET_ID'));
-  return { p, ss, sub: ss.getSheetByName(SH_SUB), folder: DriveApp.getFolderById(p.getProperty('FOLDER_ID')) };
+  const sub = ss.getSheetByName(SH_SUB);
+  if (sub.getLastColumn() < HEADERS.length) {             // upgrade older sheets with new columns
+    sub.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#111827').setFontColor('#fff');
+    sub.getRange(1, 1, sub.getMaxRows(), HEADERS.length).setNumberFormat('@');
+  }
+  return { p, ss, sub, folder: DriveApp.getFolderById(p.getProperty('FOLDER_ID')) };
 }
 
 /* ================================================================ HTTP */
@@ -148,6 +161,7 @@ const ROUTES = {
   facultyList: r => facultyList_(auth_(r, true)),
   facultySave: r => facultySave_(auth_(r, true), r.account || {}),
   facultyDelete: r => facultyDelete_(auth_(r, true), r.username),
+  testEmail: r => testEmail_(auth_(r, true)),
   links: r => { auth_(r, true); const d = db_(); return { sheetUrl: d.ss.getUrl(), folderUrl: d.folder.getUrl() }; }
 };
 
@@ -158,6 +172,7 @@ const clean_ = (s, max) => String(s == null ? '' : s).replace(/[\u0000-\u001f]/g
 const safe_ = s => /^[=+\-@]/.test(String(s)) ? "'" + s : String(s);   // block spreadsheet formula injection
 const un_ = v => String(v == null ? '' : v).replace(/^'/, '');
 const mask_ = c => c ? c.slice(0, 2) + 'XXXXX' + c.slice(-3) : '';
+const maskMail_ = e => { if (!e) return ''; const [u, d] = e.split('@'); return u.slice(0, 2) + '•••@' + (d || ''); };
 function randomPassword_() {
   const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%';
   let s = ''; const b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, Utilities.getUuid() + Date.now());
@@ -185,14 +200,15 @@ function rowObj_(r, full) {
   const members = [1, 2, 3, 4].map(i => ({
     name: un_(r[COL['S' + i + (i === 1 ? ' Name (Leader)' : ' Name')]]),
     urn: un_(r[COL['S' + i + ' URN']]),
-    contact: full ? un_(r[COL['S' + i + ' Contact']]) : mask_(un_(r[COL['S' + i + ' Contact']]))
+    contact: full ? un_(r[COL['S' + i + ' Contact']]) : mask_(un_(r[COL['S' + i + ' Contact']])),
+    email: full ? un_(r[COL['S' + i + ' Email']]) : maskMail_(un_(r[COL['S' + i + ' Email']]))
   })).filter(m => m.name || m.urn);
   return {
     id: un_(r[0]), submittedOn: un_(r[COL['Submitted On']]), program: un_(r[COL['Program']]), division: un_(r[COL['Division']]),
     title: un_(r[COL['Project Title']]), domain: un_(r[COL['Domain']]), abstract: un_(r[COL['Abstract']]), repo: un_(r[COL['Code / Repo Link']]),
     members, fileName: un_(r[COL['File Name']]), late: r[COL['Late']] === 'YES',
     status: un_(r[COL['Status']]) || 'Submitted', remarks: un_(r[COL['Faculty Remarks']]),
-    reviewedOn: un_(r[COL['Reviewed On']]), reviewedBy: un_(r[COL['Reviewed By']])
+    reviewedOn: un_(r[COL['Reviewed On']]), reviewedBy: un_(r[COL['Reviewed By']]), emailLog: un_(r[COL['Email Log']])
   };
 }
 
@@ -212,7 +228,7 @@ function stats_() {
 
 /* ================================================================ PUBLIC: submit */
 
-const RX_PHONE = /^[6-9]\d{9}$/, RX_URN = /^[A-Za-z0-9\/\-]{4,25}$/;
+const RX_PHONE = /^[6-9]\d{9}$/, RX_URN = /^[A-Za-z0-9\/\-]{4,25}$/, RX_EMAIL = /^[^\s@<>()",;:]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const EXT = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
 
 function validate_(p) {
@@ -225,15 +241,17 @@ function validate_(p) {
   if (o.repo && !/^https?:\/\//i.test(o.repo)) throw new Error('Code / repo link must start with https://');
   o.members = []; const seen = {};
   (p.members || []).slice(0, 4).forEach((m, i) => {
-    const name = clean_(m && m.name, 80), urn = clean_(m && m.urn, 25).toUpperCase(), contact = clean_(m && m.contact, 10);
-    if (i > 0 && !(name || urn || contact)) return;
+    const name = clean_(m && m.name, 80), urn = clean_(m && m.urn, 25).toUpperCase(), contact = clean_(m && m.contact, 10), email = clean_(m && m.email, 120).toLowerCase();
+    if (i > 0 && !(name || urn || contact || email)) return;
     const L = i === 0 ? 'Student 1 (Team Leader)' : 'Student ' + (i + 1);
     if (name.length < 2) throw new Error(L + ': name is required.');
     if (!RX_URN.test(urn)) throw new Error(L + ': enter a valid URN.');
     if (i === 0 && !contact) throw new Error(L + ': contact number is required.');
     if (contact && !RX_PHONE.test(contact)) throw new Error(L + ': contact must be a 10-digit mobile number.');
+    if (i === 0 && !email) throw new Error(L + ': email is required (confirmation is sent there).');
+    if (email && !RX_EMAIL.test(email)) throw new Error(L + ': enter a valid email address.');
     if (seen[urn]) throw new Error('URN ' + urn + ' is entered twice.');
-    seen[urn] = 1; o.members.push({ name, urn, contact });
+    seen[urn] = 1; o.members.push({ name, urn, contact, email });
   });
   if (!o.members.length) throw new Error('Student 1 details are required.');
   const f = p.file || {}, ext = String(f.name || '').split('.').pop().toLowerCase();
@@ -278,12 +296,16 @@ function submit_(payload) {
     set('Submission ID', id); set('Submitted On', now_()); set('Program', d.program); set('Division', d.division);
     set('Project Title', safe_(d.title)); set('Domain', safe_(d.domain)); set('Abstract', safe_(d.abstract)); set('Code / Repo Link', safe_(d.repo));
     set('Team Size', String(d.members.length));
-    d.members.forEach((m, i) => { const n = 'S' + (i + 1); set(n + (i ? ' Name' : ' Name (Leader)'), safe_(m.name)); set(n + ' URN', m.urn); set(n + ' Contact', m.contact); });
+    d.members.forEach((m, i) => { const n = 'S' + (i + 1); set(n + (i ? ' Name' : ' Name (Leader)'), safe_(m.name)); set(n + ' URN', m.urn); set(n + ' Contact', m.contact); set(n + ' Email', m.email); });
     set('File Name', fname); set('File Link', file.getUrl()); set('File ID', file.getId()); set('Late', late ? 'YES' : 'NO'); set('Status', 'Submitted');
     s.sub.getRange(s.sub.getLastRow() + 1, 1, 1, HEADERS.length).setNumberFormat('@').setValues([row]);
     s.p.setProperty('SEQ_' + d.division, String(seq));
     CacheService.getScriptCache().remove('stats');
-    return { id, late, queue, submittedOn: row[COL['Submitted On']], program: d.program, division: d.division, title: d.title,
+    const rowNum = s.sub.getLastRow();
+    lock.releaseLock();
+    const mail = sendSubmissionEmail_({ id, late, queue, submittedOn: row[COL['Submitted On']], program: d.program, division: d.division, title: d.title, members: d.members, fileName: fname, repo: d.repo });
+    s.sub.getRange(rowNum, COL['Email Log'] + 1).setValue(mail.log);
+    return { id, late, queue, emailed: mail.sentTo, submittedOn: row[COL['Submitted On']], program: d.program, division: d.division, title: d.title,
              members: d.members.map(m => ({ name: m.name, urn: m.urn })), fileName: fname };
   } finally { lock.releaseLock(); }
 }
@@ -348,7 +370,8 @@ function findRow_(s, id) {
 /* ================================================================ FACULTY: data */
 
 function dashboard_(s) {
-  return { user: s, config: publicConfig_(), rows: rows_().filter(r => inScope_(s, r[COL['Division']])).map(r => rowObj_(r, false)) };
+  let quota = null; try { quota = MailApp.getRemainingDailyQuota(); } catch (e) {}
+  return { user: s, config: publicConfig_(), emailQuota: CONFIG.EMAIL_ENABLED ? quota : null, rows: rows_().filter(r => inScope_(s, r[COL['Division']])).map(r => rowObj_(r, false)) };
 }
 function review_(s, id, status, remarks) {
   if (CONFIG.STATUSES.indexOf(status) < 0) throw new Error('Invalid status.');
@@ -356,9 +379,18 @@ function review_(s, id, status, remarks) {
   try {
     const f = findRow_(s, String(id));
     const when = Utilities.formatDate(new Date(), TZ, 'dd-MM-yyyy HH:mm');
-    db_().sub.getRange(f.rowNum, COL['Status'] + 1, 1, 4).setValues([[status, safe_(clean_(remarks, 500)), when, s.name || s.u]]);
+    const sub = db_().sub;
+    const changed = un_(f.r[COL['Status']]) !== status || un_(f.r[COL['Faculty Remarks']]) !== clean_(remarks, 500);
+    sub.getRange(f.rowNum, COL['Status'] + 1, 1, 4).setValues([[status, safe_(clean_(remarks, 500)), when, s.name || s.u]]);
     log_(s.u, 'REVIEW', id + ' → ' + status);
-    return { reviewedOn: when, reviewedBy: s.name || s.u };
+    let emailed = '';
+    if (changed && CONFIG.NOTIFY_ON_REVIEW) {
+      const o = rowObj_(f.r, true);
+      const mail = sendReviewEmail_(o, status, clean_(remarks, 500), s.name || s.u);
+      emailed = mail.sentTo;
+      sub.getRange(f.rowNum, COL['Email Log'] + 1).setValue((un_(f.r[COL['Email Log']]) + ' | ' + mail.log).replace(/^ \| /, '').slice(-480));
+    }
+    return { reviewedOn: when, reviewedBy: s.name || s.u, emailed };
   } finally { lock.releaseLock(); }
 }
 function reveal_(s, id) {
@@ -434,4 +466,85 @@ function facultyDelete_(s, username) {
   const { sh, v } = facRows_();
   for (let i = 1; i < v.length; i++) if (String(v[i][0]).toLowerCase() === username) { sh.deleteRow(i + 1); log_(s.u, 'FACULTY_DELETED', username); return true; }
   throw new Error('Account not found.');
+}
+
+/* ================================================================ EMAIL */
+
+function esc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function mailShell_(title, accent, inner) {
+  return '<div style="background:#f4f4f0;padding:24px 12px;font-family:Segoe UI,Roboto,Arial,sans-serif;color:#0d0f1a">' +
+    '<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e6e4dc">' +
+    '<div style="padding:16px 22px;border-bottom:1px solid #eee"><img src="' + CONFIG.LOGO_URL + '" alt="ADYPU" height="40" style="display:block;height:40px"></div>' +
+    '<div style="background:#0d0f1a;color:#fff;padding:20px 22px"><div style="font-size:12px;opacity:.7;letter-spacing:.5px">' + esc_(CONFIG.SCHOOL) + ' · ' + esc_(CONFIG.LAB_NAME) + '</div>' +
+    '<div style="font-size:21px;font-weight:700;margin-top:4px">' + title + '</div>' +
+    '<div style="height:4px;width:56px;background:' + accent + ';border-radius:4px;margin-top:10px"></div></div>' +
+    '<div style="padding:20px 22px;font-size:14.5px;line-height:1.6">' + inner + '</div>' +
+    '<div style="padding:14px 22px;background:#fafaf7;border-top:1px solid #eee;font-size:12px;color:#6b7089">' + esc_(CONFIG.UNIVERSITY) + ' · AY ' + esc_(CONFIG.ACADEMIC_YEAR) +
+    '<br>This is an automated message. For queries, reply to this email.</div></div></div>';
+}
+function kvTable_(rows) {
+  return '<table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0">' + rows.map(r =>
+    '<tr><td style="padding:7px 0;color:#6b7089;width:120px;vertical-align:top">' + r[0] + '</td><td style="padding:7px 0;font-weight:600">' + r[1] + '</td></tr>').join('') + '</table>';
+}
+function recipients_(members) {
+  const seen = {}; return members.map(m => String(m.email || '').trim().toLowerCase()).filter(e => e && RX_EMAIL.test(e) && !seen[e] && (seen[e] = 1));
+}
+function send_(to, subject, html, plain) {
+  if (!CONFIG.EMAIL_ENABLED) return { sentTo: '', log: 'email off' };
+  if (!to.length) return { sentTo: '', log: 'no email address' };
+  try {
+    if (MailApp.getRemainingDailyQuota() < to.length) return { sentTo: '', log: now_() + ' SKIPPED (daily email quota used up)' };
+    MailApp.sendEmail({ to: to.join(','), subject, htmlBody: html, body: plain, name: CONFIG.SENDER_NAME, replyTo: CONFIG.REPLY_TO });
+    return { sentTo: to.join(', '), log: now_() + ' SENT ' + subject.split('·')[0].trim() + ' → ' + to.join(', ') };
+  } catch (e) {
+    return { sentTo: '', log: now_() + ' FAILED: ' + String(e.message || e).slice(0, 120) };
+  }
+}
+
+function sendSubmissionEmail_(r) {
+  const team = r.members.map((m, i) => esc_(m.name) + ' <span style="color:#6b7089">(' + esc_(m.urn) + ')</span>' + (i ? '' : ' · leader')).join('<br>');
+  const inner =
+    '<p>Dear ' + esc_(r.members[0].name.split(' ')[0]) + ' and team,</p>' +
+    '<p>Your DSL Lab project has been <b>successfully submitted</b>. Please keep this email for your records.</p>' +
+    '<div style="background:#f1efff;border-radius:12px;padding:14px 16px;margin:14px 0"><div style="font-size:12px;color:#3d2fd6">SUBMISSION ID</div>' +
+    '<div style="font-family:Consolas,monospace;font-size:26px;font-weight:700;color:#3d2fd6;letter-spacing:1px">' + esc_(r.id) + '</div>' +
+    '<div style="font-size:13px;margin-top:4px">#' + r.queue + ' in the Division ' + esc_(r.division) + ' review queue' + (r.late ? ' · <b style="color:#b2371c">submitted after deadline</b>' : '') + '</div></div>' +
+    kvTable_([['Submitted on', esc_(r.submittedOn)], ['Program', esc_(r.program)], ['Division', esc_(r.division)], ['Project title', esc_(r.title)],
+              ['Team', team], ['GitHub / code', r.repo ? '<a href="' + esc_(r.repo) + '">' + esc_(r.repo) + '</a>' : '-'], ['File', esc_(r.fileName)]]) +
+    '<p><a href="' + CONFIG.SITE_URL + '#track" style="display:inline-block;background:#3d2fd6;color:#fff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700">Track review status →</a></p>' +
+    '<p style="font-size:13px;color:#6b7089">To track, use your Submission ID and the URN of any team member. You will also get an email when your faculty reviews the project.</p>';
+  const plain = 'Your DSL Lab project has been submitted.\nSubmission ID: ' + r.id + '\nTitle: ' + r.title + '\nDivision: ' + r.division +
+    '\nTeam: ' + r.members.map(m => m.name + ' (' + m.urn + ')').join(', ') + '\nTrack status: ' + CONFIG.SITE_URL + '#track';
+  return send_(recipients_(r.members), r.id + ' · DSL Lab project submitted ✅', mailShell_('Project submitted ✅', '#c8f560', inner), plain);
+}
+
+function sendReviewEmail_(o, status, remarks, by) {
+  const col = { 'Approved': '#0fa36b', 'Needs Revision': '#ff6a4d', 'Under Review': '#c97a00', 'Submitted': '#3d2fd6' }[status] || '#3d2fd6';
+  const msg = {
+    'Approved': 'Congratulations! Your project has been <b>approved</b> by your faculty.',
+    'Needs Revision': 'Your faculty has reviewed your project and <b>requested some changes</b>. Please go through the remarks below and update your work.',
+    'Under Review': 'Your project is now <b>under review</b> by your faculty.',
+    'Submitted': 'The status of your project has been updated.'
+  }[status];
+  const inner = '<p>Dear ' + esc_(o.members[0].name.split(' ')[0]) + ' and team,</p><p>' + msg + '</p>' +
+    '<div style="display:inline-block;background:' + col + ';color:#fff;font-weight:700;padding:7px 14px;border-radius:999px;margin:6px 0">' + esc_(status) + '</div>' +
+    kvTable_([['Submission ID', '<span style="font-family:Consolas,monospace">' + esc_(o.id) + '</span>'], ['Project title', esc_(o.title)], ['Division', esc_(o.division)], ['Reviewed by', esc_(by)]]) +
+    (remarks ? '<div style="border-left:4px solid ' + col + ';background:#fafaf7;padding:12px 14px;border-radius:8px;margin:10px 0"><div style="font-size:12px;color:#6b7089;margin-bottom:4px">FACULTY REMARKS</div>' + esc_(remarks) + '</div>' : '') +
+    '<p><a href="' + CONFIG.SITE_URL + '#track" style="display:inline-block;background:#0d0f1a;color:#fff;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700">View on portal →</a></p>';
+  const plain = 'DSL Lab project ' + o.id + ' status: ' + status + (remarks ? '\nRemarks: ' + remarks : '') + '\nTrack: ' + CONFIG.SITE_URL + '#track';
+  return send_(recipients_(o.members), o.id + ' · Project status: ' + status, mailShell_('Review update: ' + esc_(status), col, inner), plain);
+}
+
+function testEmail_(s) {
+  const r = send_([CONFIG.REPLY_TO], 'DSL Lab portal · test email', mailShell_('Email is working ✅', '#c8f560',
+    '<p>This test was sent from the DSL Lab Submission Portal by <b>@' + esc_(s.u) + '</b>.</p><p>Student confirmation and review emails will look like this.</p>'), 'DSL Lab portal test email');
+  log_(s.u, 'TEST_EMAIL', r.log);
+  if (!r.sentTo) throw new Error(r.log);
+  return { sentTo: r.sentTo, quota: MailApp.getRemainingDailyQuota() };
+}
+
+/** Run once from the editor after updating the code, to grant the "send email" permission. */
+function authorizeEmail() {
+  Logger.log('Emails left today: ' + MailApp.getRemainingDailyQuota());
 }
