@@ -5,7 +5,7 @@
    While API_URL is empty, the site runs in PREVIEW mode (nothing is saved).
    ========================================================================= */
 window.DSL_CONFIG = {
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzy-uJIJug0aeMFLVxS-UWXEyxVxEwF-s6HB2S6FtZgKsE5L738G0EdQU0XHxPCSqfH/exec',
 
   // University logo: a local copy (assets/logo.png) is used first if you add one,
   // otherwise the official logo from adypu.edu.in is shown.
