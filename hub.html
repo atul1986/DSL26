@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>SoE Portals · Control Centre · ADYPU</title>
+<link rel="icon" href="https://adypu.edu.in/wp-content/uploads/2023/03/cropped-favicon-1-270x270.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{--bg:#f6f5f1;--paper:#fff;--ink:#0d0f1a;--ink2:#3b4058;--muted:#6b7089;--line:#e6e4dc;--brand:#3d2fd6;--lime:#c8f560;--coral:#ff6a4d;--ok:#0fa36b;--err:#dc3545;--mono:'JetBrains Mono',ui-monospace,monospace;--head:'Space Grotesk',system-ui,sans-serif;--sans:'Inter',system-ui,sans-serif;--shadow:0 1px 0 var(--line),0 18px 40px -22px #0d0f1a30}
+[data-theme=dark]{--bg:#0b0d16;--paper:#141726;--ink:#eef0fa;--ink2:#c3c7dc;--muted:#8a90ad;--line:#262a40;--brand:#7d70ff}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit}
+.top{background:var(--ink);color:#eef0fa;position:relative;overflow:hidden}
+.top::before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff0a 1px,transparent 1px),linear-gradient(90deg,#ffffff0a 1px,transparent 1px);background-size:30px 30px}
+.top-in{max-width:1240px;margin:0 auto;padding:22px 22px 70px;position:relative}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{background:#fff;border-radius:12px;padding:6px 10px;display:flex;align-items:center;min-height:48px}
+.logo img{height:36px;display:block}
+.logo span{font-family:var(--head);font-weight:700;color:var(--brand)}
+.bar .t b{display:block;font-family:var(--head);font-size:16px}
+.bar .t small{opacity:.65;font-size:12.5px}
+.grow{flex:1}
+.chipb{border:1px solid #ffffff2a;background:#ffffff14;color:#fff;border-radius:11px;padding:9px 13px;cursor:pointer;font-weight:600;font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.clock{font-family:var(--mono);font-size:13px;opacity:.8}
+h1{font-family:var(--head);font-size:clamp(30px,4.6vw,50px);letter-spacing:-1.2px;margin:30px 0 8px;line-height:1.05}
+h1 span{background:var(--lime);color:#11160a;padding:0 10px;border-radius:12px;display:inline-block;transform:rotate(-1.2deg)}
+.sub{opacity:.75;margin:0;max-width:640px;line-height:1.55}
+.totals{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.tot{background:#ffffff12;border:1px solid #ffffff22;border-radius:14px;padding:10px 16px;min-width:140px}
+.tot b{display:block;font-family:var(--head);font-size:28px}
+.tot small{opacity:.7;font-size:12px}
+
+.wrap{max-width:1240px;margin:-46px auto 0;padding:0 22px 50px;position:relative}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:960px){.grid{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}
+.ch{padding:18px 20px;display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line)}
+.ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
+.ch h2{font-family:var(--head);margin:0;font-size:20px;letter-spacing:-.4px}
+.ch p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.status{margin-left:auto;font-size:12px;font-weight:700;border-radius:999px;padding:5px 10px;white-space:nowrap;display:inline-flex;gap:6px;align-items:center;background:var(--bg);color:var(--muted)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.on{background:#e3f7ef;color:#0a7a50}.status.on i{background:var(--ok);box-shadow:0 0 0 3px #0fa36b33}
+.status.off{background:#ffe9e5;color:#b2371c}.status.off i{background:var(--err)}
+[data-theme=dark] .status.on{background:#0e3d2c;color:#9df0c9}[data-theme=dark] .status.off{background:#4a1f17;color:#ffb8a6}
+.cb{padding:18px 20px}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.kp div{background:var(--bg);border-radius:14px;padding:10px 12px}
+.kp b{display:block;font-family:var(--head);font-size:26px;line-height:1.1}
+.kp small{color:var(--muted);font-size:11.5px}
+.divs{display:grid;gap:5px;align-items:end;height:86px;margin:6px 0 4px}
+.dv{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+.dv i{width:100%;background:var(--brand);border-radius:5px 5px 2px 2px;min-height:3px;transition:height .6s}
+.dv.z i{background:repeating-linear-gradient(45deg,#ffd8cf,#ffd8cf 3px,transparent 3px,transparent 6px);height:8px!important}
+.dv em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.dv b{font-family:var(--mono);font-size:10px}
+.dl{font-size:12.5px;color:var(--ink2);margin:8px 0 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dl b{font-family:var(--mono);background:var(--lime);color:#11160a;padding:2px 8px;border-radius:7px}
+.sect{font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.links{grid-template-columns:1fr}}
+.lk{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px 12px;transition:.15s;background:var(--paper);min-width:0}
+.lk:hover{border-color:var(--brand);transform:translateY(-1px);box-shadow:0 8px 20px -14px var(--brand)}
+.lk .e{font-size:18px;flex:none}
+.lk b{display:block;font-size:13.5px}
+.lk small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.lk.pri small{color:#ffffffb0}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ab{border:1px solid var(--line);background:var(--paper);border-radius:11px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.ab:hover{border-color:var(--ink2)}
+.ab.wa{background:#25d366;border-color:#25d366;color:#05301a}
+
+.tools{margin-top:18px}
+.tg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:960px){.tg{grid-template-columns:repeat(2,1fr)}}
+.qrs{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:18px}
+@media(max-width:700px){.qrs{grid-template-columns:1fr}}
+.qr{display:flex;gap:16px;align-items:center}
+.qr .box{background:#fff;padding:8px;border-radius:12px;border:1px solid var(--line);flex:none}
+.qr .box svg{width:120px;height:120px;display:block}
+.qr h3{font-family:var(--head);margin:0 0 4px;font-size:16px}
+.qr p{margin:0 0 10px;color:var(--muted);font-size:12.5px;word-break:break-all}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,80px);opacity:0;background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;transition:.3s;z-index:9}
+.toast.show{transform:translate(-50%,0);opacity:1}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px 0 30px}
+@media print{.top,.grid,.tools,footer,.acts{display:none!important}.wrap{margin:0}.qrs{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="bar">
+      <div class="logo"><img id="logo" src="https://adypu.edu.in/wp-content/themes/adypu/images/logo.png" alt="ADYPU" onerror="this.outerHTML='<span>ADYPU</span>'"></div>
+      <div class="t"><b>School of Engineering</b><small>Student Submission Portals · Control Centre</small></div>
+      <div class="grow"></div>
+      <span class="clock" id="clock"></span>
+      <button class="chipb" id="refresh">⟳ Refresh</button>
+      <button class="chipb" id="theme">🌙</button>
+    </div>
+    <h1>All portals, <span>one place</span></h1>
+    <p class="sub">Live status, submission counts and deadlines for every portal, plus all the links you need: student pages, faculty consoles, GitHub and Google backends.</p>
+    <div class="totals">
+      <div class="tot"><b id="tAll">–</b><small>total submissions</small></div>
+      <div class="tot"><b id="tStud">–</b><small>students covered</small></div>
+      <div class="tot"><b id="tLive">–</b><small>portals online</small></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid" id="portals"></div>
+
+  <section class="card tools">
+    <div class="ch"><div class="ico" style="background:#fff2da">🧰</div><div><h2>Google &amp; GitHub tools</h2><p>Backends, data and hosting for both portals</p></div></div>
+    <div class="cb">
+      <div class="tg">
+        <a class="lk" href="https://script.google.com/home" target="_blank" rel="noopener"><span class="e">⚙️</span><span><b>Apps Script projects</b><small>Code.gs · deployments</small></span></a>
+        <a class="lk" href="https://docs.google.com/spreadsheets/" target="_blank" rel="noopener"><span class="e">📊</span><span><b>Google Sheets</b><small>DSL & Research data sheets</small></span></a>
+        <a class="lk" href="https://drive.google.com/drive/my-drive" target="_blank" rel="noopener"><span class="e">📁</span><span><b>Google Drive</b><small>Uploaded files by division</small></span></a>
+        <a class="lk" href="https://mail.google.com/mail/u/0/#sent" target="_blank" rel="noopener"><span class="e">📧</span><span><b>Gmail · Sent</b><small>Student confirmation emails</small></span></a>
+        <a class="lk" href="https://github.com/atul1986" target="_blank" rel="noopener"><span class="e">🐙</span><span><b>GitHub profile</b><small>atul1986</small></span></a>
+        <a class="lk" href="https://script.google.com/home/executions" target="_blank" rel="noopener"><span class="e">📜</span><span><b>Apps Script executions</b><small>Errors & activity log</small></span></a>
+        <a class="lk" href="https://script.google.com/home/triggers" target="_blank" rel="noopener"><span class="e">⏱</span><span><b>Apps Script triggers</b><small>Scheduled jobs</small></span></a>
+        <a class="lk" href="https://www.githubstatus.com/" target="_blank" rel="noopener"><span class="e">🟢</span><span><b>GitHub status</b><small>If a site is down</small></span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="card tools">
+    <div class="ch"><div class="ico" style="background:#e8ecff">📱</div><div><h2>QR codes for students</h2><p>Print or project these in class. Use the 🖨 button to print just the QR codes.</p></div><button class="ab" style="margin-left:auto" onclick="window.print()">🖨 Print QR</button></div>
+    <div class="cb"><div class="qrs" id="qrs"></div></div>
+  </section>
+</main>
+<footer>© <span id="yr"></span> Ajeenkya D Y Patil University · School of Engineering · Control Centre (not linked from student pages)</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const PORTALS = [
+  {
+    key: 'dsl', name: 'DSL Lab Projects', who: 'Second Year B.Tech · Divisions A–M', icon: '🧩', tint: '#e8ecff',
+    site: 'https://atul1986.github.io/DSL26/', repo: 'atul1986/DSL26',
+    api: 'https://script.google.com/macros/s/AKfycbzy-uJIJug0aeMFLVxS-UWXEyxVxEwF-s6HB2S6FtZgKsE5L738G0EdQU0XHxPCSqfH/exec',
+    divisions: 'ABCDEFGHIJKLM'.split(''),
+    wa: '📢 *DSL Lab Project Submission (SY B.Tech)*\nSubmit your project here: https://atul1986.github.io/DSL26/\nKeep ready: team details, project title, GitHub link and report (PDF/Word).'
+  },
+  {
+    key: 'rp', name: 'TE Research Papers', who: 'Third Year (TE) B.Tech · Divisions A–E', icon: '📄', tint: '#f4ffe0',
+    site: 'https://atul1986.github.io/ResearchPaper-26/', repo: 'atul1986/ResearchPaper-26',
+    api: 'https://script.google.com/macros/s/AKfycbyjfqQDfWNrdR4wP7nyqfTiRCAn4dHiGl4wByF-ngyBhvPy7OiPc_uicbXsPsC_j_vo/exec',
+    divisions: 'ABCDE'.split(''),
+    wa: '📢 *TE Research Paper Submission*\nSubmit your paper here: https://atul1986.github.io/ResearchPaper-26/\nKeep ready: author details, paper title, objective, paper (Word/PDF) and plagiarism report.'
+  }
+];
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200); }
+try { const t = localStorage.getItem('hub_theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$('#theme').onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; try { localStorage.setItem('hub_theme', t); } catch (e) {} };
+$('#yr').textContent = new Date().getFullYear();
+setInterval(() => $('#clock').textContent = new Date().toLocaleString('en-IN', {weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit'}), 1000);
+
+function card(p){
+  const L = (e, t, s, href, cls = '') => `<a class="lk ${cls}" href="${href}" target="_blank" rel="noopener"><span class="e">${e}</span><span style="min-width:0"><b>${t}</b><small>${s}</small></span></a>`;
+  return `<section class="card" id="c-${p.key}">
+    <div class="ch"><div class="ico" style="background:${p.tint}">${p.icon}</div><div><h2>${p.name}</h2><p>${p.who}</p></div><span class="status" id="st-${p.key}"><i></i>checking…</span></div>
+    <div class="cb">
+      <div class="kp"><div><b id="n-${p.key}">–</b><small>submissions</small></div><div><b id="s-${p.key}">–</b><small>students</small></div><div><b id="d-${p.key}">–</b><small>days left</small></div></div>
+      <div class="divs" id="dv-${p.key}" style="grid-template-columns:repeat(${p.divisions.length},1fr)"></div>
+      <div class="dl" id="dl-${p.key}">Deadline: loading…</div>
+      <div class="sect">Open</div>
+      <div class="links">
+        ${L('🎓', 'Student portal', p.site.replace('https://', ''), p.site, 'pri')}
+        ${L('🔐', 'Faculty console', 'admin.html · review & export', p.site + 'admin.html')}
+        ${L('🔎', 'Track status page', 'what students see', p.site + '#track')}
+        ${L('⚙️', 'Settings (deadline)', 'console → Settings', p.site + 'admin.html')}
+      </div>
+      <div class="sect">Code &amp; hosting</div>
+      <div class="links">
+        ${L('🐙', 'GitHub repository', p.repo, 'https://github.com/' + p.repo)}
+        ${L('🚀', 'Deploy status', 'GitHub Actions', 'https://github.com/' + p.repo + '/actions')}
+        ${L('🌐', 'Pages settings', 'enable / branch', 'https://github.com/' + p.repo + '/settings/pages')}
+        ${L('✏️', 'Edit config.js', 'API link · divisions', 'https://github.com/' + p.repo + '/edit/main/assets/config.js')}
+        ${L('📘', 'Setup guide', 'README', 'https://github.com/' + p.repo + '#readme')}
+        ${L('🧠', 'Backend Code.gs', 'latest version', 'https://github.com/' + p.repo + '/blob/main/backend/Code.gs')}
+      </div>
+      <div class="acts">
+        <button class="ab" data-copy="${p.site}">📋 Copy student link</button>
+        <a class="ab wa" href="https://wa.me/?text=${encodeURIComponent(p.wa)}" target="_blank" rel="noopener">🟢 Share on WhatsApp</a>
+        <button class="ab" data-copy="${p.api}">🔗 Copy API link</button>
+      </div>
+    </div></section>`;
+}
+$('#portals').innerHTML = PORTALS.map(card).join('');
+$('#qrs').innerHTML = PORTALS.map(p => `<div class="qr"><div class="box" id="qr-${p.key}"></div><div><h3>${p.name}</h3><p>${p.site}</p><button class="ab" data-copy="${p.site}">📋 Copy link</button></div></div>`).join('');
+PORTALS.forEach(p => { try { const q = qrcode(0, 'M'); q.addData(p.site); q.make(); $('#qr-' + p.key).innerHTML = q.createSvgTag({cellSize: 4, margin: 0, scalable: true}); } catch (e) { $('#qr-' + p.key).textContent = 'QR unavailable'; } });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]'); if (!b) return;
+  const t = b.dataset.copy;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Copied: ' + t.slice(0, 48) + (t.length > 48 ? '…' : '')), () => prompt('Copy this link:', t));
+});
+
+async function load(p){
+  const st = $('#st-' + p.key);
+  st.className = 'status'; st.innerHTML = '<i></i>checking…';
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 20000);
+    const res = await fetch(p.api, { method: 'POST', body: JSON.stringify({ action: 'init' }), signal: ctl.signal });
+    clearTimeout(to);
+    const j = await res.json(); if (!j.ok) throw new Error(j.error || 'error');
+    const { config: c, stats: s } = j.data;
+    st.className = 'status on'; st.innerHTML = '<i></i>online';
+    $('#n-' + p.key).textContent = s.total; $('#s-' + p.key).textContent = s.students;
+    const vals = p.divisions.map(d => s.byDiv[d] || 0), max = Math.max(1, ...vals);
+    $('#dv-' + p.key).innerHTML = p.divisions.map((d, i) => `<div class="dv ${vals[i] ? '' : 'z'}" title="Division ${d}: ${vals[i]}"><b>${vals[i]}</b><i style="height:${vals[i] / max * 52}px"></i><em>${d}</em></div>`).join('');
+    const pending = p.divisions.filter((d, i) => !vals[i]);
+    if (c.DEADLINE) {
+      const dl = new Date(c.DEADLINE), days = Math.ceil((dl - new Date()) / 864e5);
+      $('#d-' + p.key).textContent = days > 0 ? days : 0;
+      $('#dl-' + p.key).innerHTML = `Deadline: <b>${dl.toLocaleString('en-IN', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata'})}</b>${days <= 0 ? (c.ACCEPT_LATE ? ' · passed, late entries flagged' : ' · closed') : ''}${pending.length ? ` · <span style="color:var(--coral);font-weight:600">no submissions yet: ${pending.join(', ')}</span>` : ' · all divisions submitted 🎉'}`;
+    } else { $('#d-' + p.key).textContent = '∞'; $('#dl-' + p.key).textContent = 'No deadline set'; }
+    return { ok: true, total: s.total, students: s.students };
+  } catch (e) {
+    st.className = 'status off'; st.innerHTML = '<i></i>offline';
+    $('#dl-' + p.key).innerHTML = '<span style="color:var(--err)">Backend not reachable. Check the Apps Script deployment.</span>';
+    return { ok: false, total: 0, students: 0 };
+  }
+}
+async function loadAll(){
+  const r = await Promise.all(PORTALS.map(load));
+  $('#tAll').textContent = r.reduce((a, x) => a + x.total, 0);
+  $('#tStud').textContent = r.reduce((a, x) => a + x.students, 0);
+  $('#tLive').textContent = r.filter(x => x.ok).length + ' / ' + r.length;
+}
+$('#refresh').onclick = loadAll;
+loadAll(); setInterval(loadAll, 120000);
+</script>
+</body>
+</html>
